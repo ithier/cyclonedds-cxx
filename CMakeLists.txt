@@ -1,18 +1,28 @@
 #
-# Copyright(c) 2020 ADLINK Technology Limited and others
-#
-# This program and the accompanying materials are made available under the
-# terms of the Eclipse Public License v. 2.0 which is available at
-# http://www.eclipse.org/legal/epl-2.0, or the Eclipse Distribution License
-# v. 1.0 which is available at
-# http://www.eclipse.org/org/documents/edl-v10.php.
-#
-# SPDX-License-Identifier: EPL-2.0 OR BSD-3-Clause
+# Copyright(c) 2006 to 2018 ADLINK Technology Limited and others
 #
 cmake_minimum_required(VERSION 3.7)
-project(CycloneDDS-CXX VERSION 0.1.0 LANGUAGES C CXX)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
+# Set module path before defining project so platform files will work.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/src/cmake/modules)
+set(CMAKE_PROJECT_NAME_FULL "CycloneDDS CXX API")
+set(PROJECT_NAME "CycloneDDS_CXX_API")
+set(PROJECT_VERSION 0.5.0)
+set(PROJECT_VERSION_UUID "f91c0f5b-7b42-41d9-8cea-103e25ab753a")
+project(${PROJECT_NAME} VERSION ${PROJECT_VERSION})
+
+
+# Set some convenience variants of the project-name
+string(REPLACE " " "-" CMAKE_PROJECT_NAME_DASHED "${CMAKE_PROJECT_NAME_FULL}")
+string(TOUPPER ${CMAKE_PROJECT_NAME} CMAKE_PROJECT_NAME_CAPS)
+string(TOLOWER ${CMAKE_PROJECT_NAME} CMAKE_PROJECT_NAME_SMALL)
+
+set(CMAKE_C_STANDARD 99)
+
+if(${CMAKE_C_COMPILER_ID} STREQUAL "SunPro")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64 -xc99 -D__restrict=restrict -D__deprecated__=")
+  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -m64")
+endif()
 
 # Conan
 if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake" AND NOT CONAN_DEPENDENCIES)
@@ -41,110 +51,105 @@ if(EXISTS "${CMAKE_BINARY_DIR}/conanbuildinfo.cmake" AND NOT CONAN_DEPENDENCIES)
   conan_define_targets()
 endif()
 
-# By default don't treat warnings as errors, else anyone building it with a
-# different compiler that just happens to generate a warning, as well as
-# anyone adding or modifying something and making a small mistake would run
-# into errors.  CI builds can be configured differently.
-option(WERROR "Treat compiler warnings as errors." OFF)
+option(BUILD_STRICT "Build with strict compiler warning conditions" ON)
+option(BUILD_EXAMPLES "Build example applications" ON)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  add_compile_options(/W3)
-  if(WERROR)
-    add_compile_options(/WX)
-  endif()
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
-       CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-  add_compile_options(
-    -Wall -Wextra -Wconversion -Wstrict-prototypes
-    -Wunused -Winfinite-recursion -Wassign-enum -Wcomma -Wdocumentation
-    -Wconditional-uninitialized -Wshadow)
-  if(WERROR)
-    add_compile_options(-Werror)
-  endif()
-  if(CMAKE_GENERATOR STREQUAL "Ninja")
-    add_compile_options(-Xclang -fcolor-diagnostics)
-  endif()
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  add_compile_options(
-    -Wall -Wextra -Wconversion)
-  if(WERROR)
-    add_compile_options(-Werror)
-  endif()
-  if(CMAKE_GENERATOR STREQUAL "Ninja")
-    add_compile_options(-fdiagnostics-color=always)
-  endif()
-endif()
-
-if(CMAKE_GENERATOR STREQUAL "Xcode")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_EMPTY_BODY YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_SHADOW YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_BOOL_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_CONSTANT_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_64_TO_32_BIT_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_ENUM_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_FLOAT_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_INT_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_NON_LITERAL_NULL_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_IMPLICIT_SIGN_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_INFINITE_RECURSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_INITIALIZER_NOT_FULLY_BRACKETED YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_ABOUT_RETURN_TYPE YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_MISSING_PARENTHESES YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_ABOUT_MISSING_FIELD_INITIALIZERS YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_ABOUT_MISSING_NEWLINE YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_ASSIGN_ENUM YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_SEMICOLON_BEFORE_METHOD_BODY YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_SIGN_COMPARE YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_STRICT_PROTOTYPES YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_COMMA YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNINITIALIZED_AUTOS YES_AGGRESSIVE)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_FUNCTION YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_LABEL YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_PARAMETER YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_VALUE YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_UNUSED_VARIABLE YES)
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_WARN_DOCUMENTATION_COMMENTS YES)
-  set(CMAKE_XCODE_ATTRIBUTE_GCC_WARN_ABOUT_MISSING_PROTOTYPES YES)
-endif()
-
-if(CMAKE_VERSION VERSION_LESS 3.13)
-  macro(add_link_options)
-    link_libraries(${ARGV})
-  endmacro()
-endif()
-
-# Make it easy to enable Clang and GCC analyzers
-if(USE_SANITIZER)
-  string(REGEX REPLACE " " "" USE_SANITIZER "${USE_SANITIZER}")
-  string(REGEX REPLACE "[,;]+" ";" USE_SANITIZER "${USE_SANITIZER}")
-  foreach(san ${USE_SANITIZER})
-    if(san STREQUAL "address")
-      add_compile_options("-fno-omit-frame-pointer")
-      add_link_options("-fno-omit-frame-pointer")
+if(BUILD_STRICT)
+  # Set reasonably strict warning options for clang, gcc, msvc
+  # Enable coloured ouput if Ninja is used for building
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
+    add_definitions(-Wall -Wextra -Wconversion -Wunused)
+    if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+      add_definitions(-Xclang -fcolor-diagnostics)
     endif()
-    if(san AND NOT san STREQUAL "none")
-      message(STATUS "Enabling sanitizer: ${san}")
-      add_compile_options("-fsanitize=${san}")
-      add_link_options("-fsanitize=${san}")
+  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    add_definitions(-Wall -Wextra -Wconversion)
+    if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+      add_definitions(-fdiagnostics-color=always)
     endif()
-  endforeach()
+  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+    add_definitions(/W3)
+  endif()
 endif()
+
+# Make it easy to enable one of Clang's/gcc's analyzers, and default to using
+# the address sanitizer for ordinary debug builds; gcc is giving some grief on
+# Travis, so don't enable it for gcc by default
+if(NOT USE_SANITIZER)
+  if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" AND
+      NOT ("${CMAKE_GENERATOR}" STREQUAL "Xcode") AND
+      ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang"
+        OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang"))
+    message(STATUS "Enabling address sanitizer; set USE_SANITIZER=none to prevent this")
+    set(USE_SANITIZER address)
+  else()
+    set(USE_SANITIZER none)
+  endif()
+endif()
+if(NOT (${USE_SANITIZER} STREQUAL "none"))
+  message(STATUS "Sanitizer set to ${USE_SANITIZER} for ${CMAKE_PROJECT_NAME}")
+  add_compile_options(-fno-omit-frame-pointer -fsanitize=${USE_SANITIZER})
+  link_libraries(-fno-omit-frame-pointer -fsanitize=${USE_SANITIZER})
+endif()
+
+
+include(GNUInstallDirs)
+
+option(BUILD_TESTING "Build the testing tree." ON)
+include(CTest)
+
+# Overrule example installation locations.
+set(CMAKE_INSTALL_EXAMPLESDIR "${CMAKE_INSTALL_DATADIR}/${CMAKE_PROJECT_NAME}/examples" CACHE STRING "Root location for examples installation.")
+set(CMAKE_INSTALL_DDSCXX_EXAMPLESDIR "${CMAKE_INSTALL_EXAMPLESDIR}" CACHE STRING "Location for ddscxx examples location.")
+
+# Overrule documentation installation locations.
+set(CMAKE_INSTALL_DDSCXX_DOCDIR "${CMAKE_INSTALL_DOCDIR}/api/cxx" CACHE STRING "Location for CXX documentation location.")
 
 # Build all executables and libraries into the top-level /bin and /lib folders.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 
-option(BUILD_DOCS "Build documentation." OFF)
-# By default building the testing tree is enabled by including CTest, but
-# since it is not required to build the project, switch to off by default.
-option(BUILD_TESTING "Build the testing tree." OFF)
+find_package(CycloneDDS REQUIRED)
+if(NOT CycloneDDS_FOUND)
+  message(WARNING "Could not find Eclipse Cyclone DDS - lease provide it through CMAKE_PREFIX_PATH")
+  return()
+endif()
 
-include(GNUInstallDirs)
-include(CTest)
+find_package(Idlpp-cxx REQUIRED)
+if(NOT Idlpp-cxx_FOUND)
+  message(WARNING "Could not find Idlpp-cxx - please provide it through CMAKE_PREFIX_PATH")
+  return()
+endif()
+
+if(APPLE)
+  set(CMAKE_INSTALL_RPATH
+     "@loader_path/../${CMAKE_INSTALL_LIBDIR}"
+     "${CycloneDDS_DIR}/../..")
+else()
+  set(CMAKE_INSTALL_RPATH
+     "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}"
+     "${CycloneDDS_DIR}/../..")
+endif()
 
 add_subdirectory(src)
-if(BUILD_DOCS)
-  add_subdirectory(docs)
+
+if (USE_DOCS)
+  file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/doc/)
+  string(TOLOWER ${CMAKE_PROJECT_NAME_DASHED} LC_PROJECT_NAME)
+  add_custom_target(docs ALL DEPENDS ddscxx_doxygen
+  COMMAND ${CMAKE_COMMAND} -E tar "cfv" "${PROJECT_BINARY_DIR}/${LC_PROJECT_NAME}_${PROJECT_VERSION}_docs.zip" --format=zip "${PROJECT_BINARY_DIR}/doc"
+  COMMENT "Generate documentation: ${PROJECT_BINARY_DIR}/${LC_PROJECT_NAME}_${PROJECT_VERSION}_docs.zip")
 endif()
+
+if (EXISTS "${PROJECT_BINARY_DIR}/doc/" AND IS_DIRECTORY "${PROJECT_BINARY_DIR}/doc/")
+install(DIRECTORY ${PROJECT_BINARY_DIR}/doc/
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}
+    COMPONENT dev)
+else()
+  message(STATUS "Not installing the ${CMAKE_PROJECT_NAME_DASHED} documentation ${PROJECT_BINARY_DIR}/doc/ is missing use -DUSE_DOCS=1 to generate documentation")
+endif()
+
+# Pull-in CPack and support for generating <Package>Config.cmake and packages.
+include(Packaging)
+
